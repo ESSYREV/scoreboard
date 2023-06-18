@@ -1,3 +1,4 @@
+print("scoreboard")
 local w = ScrW()/1.15
 local h = ScreenScale(ScrH()) / 2.5
 
@@ -16,6 +17,7 @@ surface.CreateFont("tabFont_MAIN_Huge", {
 })
 
 local tab
+local under 
 
 local gray = Color(55,55,55,200)
 local whitegray = Color(80,80,80,200)
@@ -46,6 +48,65 @@ local function add(text,wide,parent,aligment,self)
     return slot
 end
 
+local function undertabmenu()
+
+    if not IsValid(tab) then return end
+
+    local underKeys = {}
+    underKeys["Discord"] = [[gui.OpenURL("https://discord.gg/GQHxJADSmC")]]
+    underKeys["Контент"] = [[gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=2516655055")]]
+    underKeys["Правила"] = [[LocalPlayer():ConCommand("ulx motd")]]
+
+    if LocalPlayer():GetNWBool("_Kyle_Buildmode") == true then
+        underKeys["Перейти в пвп"] = [[LocalPlayer():ConCommand("ulx pvp")]]
+    elseif LocalPlayer():GetNWBool("_Kyle_Buildmode") == false then
+        underKeys["Перейти в build"] = [[LocalPlayer():ConCommand("ulx build")]]
+    end
+
+    under = vgui.Create("DFrame")
+    under:SetSize(w, 32)
+    under:MakePopup()
+    under:SetTitle("")
+    under:ShowCloseButton(false)
+    under:SetParent(tab)
+    local posx, posy = tab:GetPos()
+    under:SetPos( posx, posy-64 )
+
+    under.Paint = function(self, w, h)
+        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 235))
+    end
+
+    local limit = w
+    local buttonSize = 0
+    local index = 0
+    buttonSize = limit / table.Count(underKeys)
+
+    for key, value in pairs(underKeys) do
+
+        local DermaButton = vgui.Create( "DButton", under )
+        DermaButton:SetText( "" )
+        DermaButton:SetPos( index, 0 )
+        DermaButton:SetSize( buttonSize, 32 ) 
+        DermaButton:SetFontInternal( "tabFont_MAIN" )
+        DermaButton.DoClick = function()
+            RunString(value)
+            tab:Remove()
+        end
+
+        DermaButton.Paint = function(self, w, h)
+            if self.Hovered then
+                draw.RoundedBox(0, 0, 0, w, h, Color(25, 25, 25, 200))
+            else
+                draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
+            end
+            draw.DrawText(key, "tabFont_MAIN",w/2,8, color_white, TEXT_ALIGN_CENTER )
+        end
+
+        index = index + buttonSize
+    end
+
+end
+
 local function scoreboardShow()
 
     local players = (#player.GetAll() + 1) 
@@ -54,7 +115,6 @@ local function scoreboardShow()
     tab = vgui.Create("DPanel")
     --timer.Simple(5,function() tab:Remove() end)
     tab:SetSize(w, players * 34)
-    tab:MakePopup()
     tab:Center()
 
     surface.SetFont("tabFont_MAIN_Huge")
@@ -81,7 +141,7 @@ local function scoreboardShow()
             --draw.RoundedBox(12, 0, 0, w, h, Color(60, 60, 60))
         end
 
-    local scale = w / 6
+    local scale = w / 7
 
     local nameSize = scale
     local modeSize = scale
@@ -101,6 +161,7 @@ local function scoreboardShow()
                       add("",27,main)
                       add("ИМЯ",nameSize,main)
                       add("РОЛЬ",roleSize,main)
+        local version  = add("Версия",modeSize,main,5)
         local mode  = add("РЕЖИМ",modeSize,main,5)
         local time  = add("ВРЕМЯ",timeSize,main,5)
         local score = add("СЧЕТ",scoreSize,main,5)
@@ -109,6 +170,9 @@ local function scoreboardShow()
         main.Paint = function(self, w, h)  end
 
     for k,v in ipairs(player.GetAll()) do
+
+        --v:SetMuted(false)
+        print(v:GetName(),v:IsMuted())
         local plColor = team.GetColor( v:Team() )
         plColor["a"] = 75
         local bt = scroll:Add("DButton")
@@ -175,10 +239,13 @@ local function scoreboardShow()
         Avatar:SetSize( 32, 32 )
         Avatar:DockMargin(0, 0, 0, 0)
         Avatar:SetPlayer( v, 32 )
+        local version = "Standard" 
+        if v:GetNWFloat("esrv.HaveChormiumVersion") == 1 then version = "Chromium" end
 
         add(v:Nick(),nameSize,bt)
 
                       add(team.GetName(v:Team()),roleSize,bt)
+                      add(version,roleSize,bt,5)
         local mode  = add(v:GetNWBool("_Kyle_Buildmode") and "Build" or "PvP",modeSize,bt,5)
         local time  = add(timeToStr( v:GetNWFloat( "TotalUTime" ) ),timeSize,bt,5)
         local score = add(v:Frags().." / "..v:Deaths(),scoreSize,bt,5)
@@ -187,74 +254,24 @@ local function scoreboardShow()
         bt.Think = function()
             if not IsValid(v) then bt:Remove(); return end
                local getBuild = v:GetNWBool("_Kyle_Buildmode") and "Build" or "PvP"
-               local getTime = string.FormattedTime(v:GetUTimeTotalTime())
+               --local getTime = string.FormattedTime(v:GetUTimeTotalTime())
 
                mode:SetText( v:GetNWBool("_Kyle_Buildmode") and "Build" or "PvP" )
                ping:SetText(v:Ping() or "nil")
                score:SetText(v:Frags() .. " / " .. v:Deaths())
                local strTime = string.FormattedTime(v:GetUTimeTotalTime())
-               time:SetText(strTime.h .. ":" .. strTime.m .. ":" .. strTime.s)
+               time:SetText(strTime.h .. "часов " .. strTime.m .. "минут")
         end
     end
-end
 
-local function undertabmenu()
-
-    if not IsValid(tab) then return end
-
-    local underKeys = {}
-    underKeys["Discord"] = [[gui.OpenURL("https://discord.com/invite/JZSRrSWuhu")]]
-    underKeys["Контент"] = [[gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=1833617086")]]
-    underKeys["Правила"] = [[LocalPlayer():ConCommand("ulx motd")]]
-
-    if LocalPlayer():GetNWBool("_Kyle_Buildmode") == true then
-        underKeys["Перейти в пвп"] = [[LocalPlayer():ConCommand("ulx pvp")]]
-    elseif LocalPlayer():GetNWBool("_Kyle_Buildmode") == false then
-        underKeys["Перейти в build"] = [[LocalPlayer():ConCommand("ulx build")]]
-    end
-
-    local under = vgui.Create("DFrame")
-    under:SetSize(w, 32)
-    under:MakePopup()
-    under:SetTitle("")
-    under:ShowCloseButton(false)
-    under:SetParent(tab)
-    local posx, posy = tab:GetPos()
-    under:SetPos( posx, posy-64 )
-
-    under.Paint = function(self, w, h)
-        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 235))
-    end
-
-    local limit = w
-    local buttonSize = 0
-    local index = 0
-    buttonSize = limit / table.Count(underKeys)
-
-    for key, value in pairs(underKeys) do
-
-        local DermaButton = vgui.Create( "DButton", under )
-        DermaButton:SetText( "" )
-        DermaButton:SetPos( index, 0 )
-        DermaButton:SetSize( buttonSize, 32 ) 
-        DermaButton:SetFontInternal( "tabFont_MAIN" )
-        DermaButton.DoClick = function()
-            RunString(value)
-            tab:Remove()
+    hook.Add( "KeyPress", "esrv.TabCursor", function(ply,key)
+        if key == 1 and not tab:IsPopup() then
+            tab:MakePopup()
+            undertabmenu()
+            --under:MakePopup()
+            return false
         end
-
-        DermaButton.Paint = function(self, w, h)
-            if self.Hovered then
-                draw.RoundedBox(0, 0, 0, w, h, Color(25, 25, 25, 200))
-            else
-                draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 0))
-            end
-            draw.DrawText(key, "tabFont_MAIN",w/2,8, color_white, TEXT_ALIGN_CENTER )
-        end
-
-        index = index + buttonSize
-    end
-
+    end)
 end
 
 local function scoreboardHide()
@@ -265,15 +282,22 @@ local function scoreboardHide()
     if IsValid(tab_menu) then
         tab_menu:Remove()
     end
+
+    if IsValid(under) then
+        under:Remove()
+    end
 end
 
 hook.Add("ScoreboardShow", "trap_scoreboard", function()
     scoreboardShow()
-    undertabmenu()
+    
 
     return false
 end)
 
 hook.Add("ScoreboardHide", "trap_scoreboard", function()
     scoreboardHide()
+    hook.Remove( "KeyPress", "esrv.TabCursor")
 end)
+
+-- https://github.com/ESSYREV/scoreboard/blob/main/lua/autorun/client/cl2.lua
